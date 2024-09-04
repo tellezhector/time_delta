@@ -7,12 +7,12 @@ The fist timestamp is always the in the past in respect to the second (or be the
 
 ## Usage:
 
-```shell
+```txt
 ./time_delta.py delta [shift]
 
-`delta` can be of the formats: 
-        1day,       1day3minutes,       1d3m,      3h,      1h, 3h2m50s or equivalently
-        1:00:00:00,   1:00:03:00, 1:00:03:00, 3:00:00, 1:00:00, 3:02:50
+`delta` can be of the formats:
+        1:00:00:00, 1:00:03:00,   1:00:03:00, 3:00:00, 1:00:00, 3:02:50 or equivalently
+        1day,       1day3minutes, 1d3m,       3h,      1h,      3h2m50s 
 
 `shift` can be of any of the same kind of formats.
         `shift` can be preceeded by a minus sign (-).
@@ -20,6 +20,7 @@ The fist timestamp is always the in the past in respect to the second (or be the
 Note: `delta` can also be negative, in which case the resulting delta will be a time
 addition instead of a substraction, but this doesn't seem very intuitive nor useful.
 ```
+
 
 ## Examples:
 
