@@ -7,7 +7,7 @@
 #
 # Usage:
 #
-# ./time_delta.py delta [shift]
+# ./time_delta.py [-n] delta [shift]
 #
 # `delta` can be of the formats: 
 #         1day,       1day3minutes,       1d3m,      3h,      1h, 3h2m50s or equivalently
@@ -15,6 +15,8 @@
 #
 # `shift` can be of any of the same kind of formats.
 #         `shift` can be preceeded by a minus sign (-).
+#
+#    `-n` do not print a new line at the end.
 #
 # Note: `delta` can also be negative, in which case the resulting delta will be a time
 # addition instead of a substraction, but this doesn't seem very intuitive nor useful.
@@ -44,6 +46,7 @@
 
 import datetime
 import re
+import os
 import sys
 
 DELTA_REGEX = re.compile(r'''^
@@ -55,11 +58,16 @@ DELTA_REGEX = re.compile(r'''^
         $''', flags=re.VERBOSE)
 CLOCK_TIME_REGEX = re.compile(r'^[-+]?(?P<clock>(\d+:){0,3}\d+)$', flags=re.VERBOSE)
 
+class TimeDeltaError(Exception):
+    def __init__(self, message: str, *args: object) -> None:
+        super().__init__(*[message, args])
+        self.message = message
+
 def clock_format_to_delta(time_str: str) -> datetime.timedelta:
     time_str = time_str.strip()
     match = CLOCK_TIME_REGEX.fullmatch(time_str)
     if not match:
-        raise ValueError(f'Bad time string {time_str=}')
+        raise TimeDeltaError(f"bad time '{time_str}'")
     sign = -1 if time_str.startswith('-') else 1
     parts = match.group('clock').split(":")
     secs = 0
@@ -82,7 +90,7 @@ def clock_format_to_delta(time_str: str) -> datetime.timedelta:
 def parse_long_delta(time_str: str) -> datetime.timedelta:
     match = DELTA_REGEX.fullmatch(time_str)
     if not match:
-        raise ValueError(f'Bad time string {time_str=}')
+        raise TimeDeltaError(f"bad time '{time_str}'")
     sign = -1 if time_str.startswith('-') else 1
     parts = match.groupdict()
     time_params = {k: int(v) for k, v in parts.items() if v}
@@ -94,31 +102,38 @@ def parse_any_delta(time_str: str) -> datetime.timedelta:
         return parse_long_delta(time_str)
     if CLOCK_TIME_REGEX.fullmatch(time_str):
         return clock_format_to_delta(time_str)
-    raise ValueError(f'Bad time string {time_str=}')
+    raise TimeDeltaError(f"bad time '{time_str}'")
 
-def main(args):
-    if len(args) < 1:
-        raise ValueError('at least one argument is required')
-    if len(args) > 2:
-        raise ValueError(f'too many arguments {len(args)} {args}; at most 2 are expected')
-    
-    if len(args) == 1:
-      [delta_string], shift_string = args, None
-    elif len(args) == 2:
-        delta_string, shift_string = args
-
-    delta = parse_any_delta(delta_string)
-    now = datetime.datetime.now().astimezone()
-    if shift_string:
-        shift = parse_any_delta(shift_string)
-        now = now + shift
-    then = now - delta
-    if then > now:
-        now, then = then, now
-    now_display = now.astimezone().isoformat(sep=' ',timespec='seconds')
-    then_display = then.astimezone().isoformat(sep=' ',timespec='seconds')
-    print(f'{then_display} - {now_display}')
+def main(args: list[str], print_end: str|None):
+    try:
+        if len(args) < 1:
+            raise TimeDeltaError('too few arguments')
+        if len(args) > 2:
+            raise TimeDeltaError(f'too many arguments')
+        
+        if len(args) == 1:
+            [delta_string], shift_string = args, None
+        elif len(args) == 2:
+            delta_string, shift_string = args
+        delta = parse_any_delta(delta_string)
+        now = datetime.datetime.now().astimezone()
+        if shift_string:
+            shift = parse_any_delta(shift_string)
+            now = now + shift
+        then = now - delta
+        if then > now:
+            now, then = then, now
+        now_display = now.astimezone().isoformat(sep=' ',timespec='seconds')
+        then_display = then.astimezone().isoformat(sep=' ',timespec='seconds')
+        print(f'{then_display} - {now_display}', end=print_end)
+    except TimeDeltaError as e:
+        print(f'[{e.message}] args: {args}', file=sys.stderr, end=print_end)
+        exit(1)
 
 if __name__ == '__main__':
    args = sys.argv[1:]
-   main(args)
+   print_end = None
+   if '-n' in args:
+       print_end = ''
+       args.remove('-n')
+   main(args, print_end)

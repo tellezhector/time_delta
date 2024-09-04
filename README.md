@@ -17,6 +17,8 @@ The fist timestamp is always the in the past in respect to the second (or be the
 `shift` can be of any of the same kind of formats.
         `shift` can be preceeded by a minus sign (-).
 
+   `-n` do not print a new line at the end.
+
 Note: `delta` can also be negative, in which case the resulting delta will be a time
 addition instead of a substraction, but this doesn't seem very intuitive nor useful.
 ```
